@@ -1,5 +1,5 @@
-**Создадим две таблицы**
-```python
+**Создаем 2 таблицы**
+python
 import sqlite3
 
 conn = sqlite3.connect("shop.db")
@@ -37,10 +37,9 @@ cursor.executemany("INSERT INTO orders(customer_id, amount) VALUES (?, ?)", [
 
 conn.commit()
 conn.close()
-```
 
-**В таком случае будет возникать ошибка**
-```python
+**Возникает ошибка**
+python
 import sqlite3
 
 conn = sqlite3.connect("shop.db")
@@ -80,12 +79,10 @@ cursor.executemany("INSERT INTO orders(customer_id, amount) VALUES (?, ?)", [
 conn.commit()
 conn.close()
 
-```
 
-**Каскадное удаление**
-```python
+**Удаление каскадное**
+python
 CREATE TABLE orders ("id INTEGER PRIMARY KEY, customer_id INTEGER, FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE)
-```
 
 **ON DELETE CASCADE:**
 1. RESTRICT
@@ -94,7 +91,7 @@ CREATE TABLE orders ("id INTEGER PRIMARY KEY, customer_id INTEGER, FOREIGN KEY(c
 4. SET DEFAULT
 5. NO ACTION
 
-```python
+python
 from sqlalchemy import (
     create_engine, MetaData, Table, Column,
     Integer, String, Float, Boolean, insert
