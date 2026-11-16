@@ -1,0 +1,257 @@
+import requests
+import os
+
+# ЭТАП 1. Получение информации по имени
+def get_person_info(name):
+    try:
+        # Получаем предполагаемый возраст
+        age_response = requests.get(
+            "https://api.agify.io",
+            params={"name": name},
+            timeout=10
+        )
+        age_response.raise_for_status()
+        age_data = age_response.json()
+
+        # Получаем предполагаемый пол
+        gender_response = requests.get(
+            "https://api.genderize.io",
+            params={"name": name},
+            timeout=10
+        )
+        gender_response.raise_for_status()
+        gender_data = gender_response.json()
+
+        age = age_data.get("age")
+        gender = gender_data.get("gender")
+        probability = gender_data.get("probability")
+
+        if gender == "female" and probability is not None:
+            female_probability = probability * 100
+        elif gender == "male" and probability is not None:
+            female_probability = (1 - probability) * 100
+        else:
+            female_probability = None
+
+        return {
+            "name": name,
+            "age": age,
+            "gender": gender,
+            "female_probability": female_probability
+        }
+
+    except requests.exceptions.Timeout:
+        print("Ошибка: сервер слишком долго отвечает.")
+    except requests.exceptions.HTTPError:
+        print("Ошибка HTTP при получении информации.")
+    except requests.exceptions.ConnectionError:
+        print("Ошибка подключения к интернету.")
+    except ValueError:
+        print("Ошибка: получен некорректный JSON.")
+
+    return None
+
+# ЭТАП 2. Получение тестовых публикаций
+def get_posts(user_id):
+    url = "https://jsonplaceholder.typicode.com/posts"
+
+    headers = {
+        "User-Agent": "PythonLearningScript/1.0",
+        "Accept-Language": "ru-RU,ru;q=0.9"
+    }
+
+    params = {
+        "userId": user_id
+    }
+
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=10
+        )
+
+        response.raise_for_status()
+        posts = response.json()
+
+        print("\n--- ТЕСТОВЫЕ ПУБЛИКАЦИИ ---")
+        print("Количество постов:", len(posts))
+
+        if posts:
+            print("Заголовки первых постов:")
+            for post in posts[:3]:
+                print("-", post["title"])
+
+        return len(posts)
+
+    except requests.exceptions.Timeout:
+        print("Ошибка: превышено время ожидания.")
+    except requests.exceptions.HTTPError:
+        print("Ошибка HTTP при загрузке постов.")
+    except requests.exceptions.ConnectionError:
+        print("Ошибка соединения.")
+    except ValueError:
+        print("Ошибка при обработке JSON.")
+
+    return None
+
+# ЭТАП 3. Отправка JSON-отчета
+def send_report(report):
+    try:
+        response = requests.post(
+            "https://httpbin.org/post",
+            json=report,
+            timeout=10
+        )
+
+        response.raise_for_status()
+
+        result = response.json()
+
+        print("\n--- ОТПРАВЛЕННЫЙ ОТЧЕТ ---")
+        print(result.get("json"))
+
+        return True
+
+    except requests.exceptions.Timeout:
+        print("Ошибка: сервер отчета не отвечает.")
+    except requests.exceptions.HTTPError:
+        print("Ошибка HTTP при отправке отчета.")
+    except requests.exceptions.ConnectionError:
+        print("Ошибка подключения к серверу.")
+    except ValueError:
+        print("Ошибка: сервер вернул некорректный JSON.")
+
+    return False
+
+# ЭТАП 4. Загрузка случайного изображения
+def download_image():
+    url = "https://picsum.photos/400/300"
+
+    try:
+        response = requests.get(
+            url,
+            stream=True,
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        file_size = 0
+
+        with open("evidence.jpg", "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    file.write(chunk)
+                    file_size += len(chunk)
+
+        print("\n--- ЗАГРУЗКА ИЗОБРАЖЕНИЯ ---")
+        print("Файл: evidence.jpg")
+        print("Размер:", file_size, "байт")
+
+    except requests.exceptions.Timeout:
+        print("Ошибка: время загрузки изображения истекло.")
+    except requests.exceptions.HTTPError:
+        print("Ошибка HTTP при загрузке изображения.")
+    except requests.exceptions.ConnectionError:
+        print("Нет подключения к серверу.")
+    except OSError:
+        print("Ошибка при сохранении файла.")
+
+# ЭТАП 5. Проверка обработки ошибок
+def check_errors():
+    print("\n--- ПРОВЕРКА HTTP-ОШИБКИ ---")
+
+    try:
+        response = requests.get(
+            "https://httpbin.org/status/404",
+            timeout=5
+        )
+        response.raise_for_status()
+
+    except requests.exceptions.HTTPError:
+        print("Обработана ошибка HTTP 404.")
+
+    except requests.exceptions.Timeout:
+        print("Превышено время ожидания.")
+
+    except requests.exceptions.ConnectionError:
+        print("Ошибка подключения.")
+
+    print("\n--- ПРОВЕРКА ТАЙМАУТА ---")
+
+    try:
+        response = requests.get(
+            "https://httpbin.org/delay/6",
+            timeout=3
+        )
+        response.raise_for_status()
+
+    except requests.exceptions.Timeout:
+        print("Обработана ошибка Timeout: сервер отвечает слишком долго.")
+
+    except requests.exceptions.HTTPError:
+        print("Ошибка HTTP.")
+
+    except requests.exceptions.ConnectionError:
+        print("Ошибка подключения.")
+
+# ГЛАВНАЯ ФУНКЦИЯ
+def main():
+    print("=" * 45)
+    print("       АГРЕГАТОР ТЕСТОВЫХ API")
+    print("=" * 45)
+
+    name = input("Введите тестовое имя на английском: ").strip()
+
+    if not name:
+        print("Ошибка: имя не может быть пустым.")
+        return
+
+    # Этап 1
+    person = get_person_info(name)
+
+    if person is None:
+        return
+
+    print("\n--- ИНФОРМАЦИЯ ПО ИМЕНИ ---")
+    print("Имя:", person["name"])
+    print("Предполагаемый возраст:", person["age"])
+    print("Предполагаемый пол:", person["gender"])
+
+    if person["female_probability"] is not None:
+        print(
+            "Вероятность женского пола:",
+            round(person["female_probability"], 2), "%"
+        )
+    else:
+        print("Вероятность женского пола: неизвестна")
+
+    # Этап 2
+    user_id = 21
+    posts_count = get_posts(user_id)
+
+    if posts_count is None:
+        return
+
+    # Этап 3
+    report = {
+        "name": person["name"],
+        "age": person["age"],
+        "gender": person["gender"],
+        "posts_count": posts_count
+    }
+
+    send_report(report)
+
+    # Этап 4
+    download_image()
+
+    # Этап 5
+    check_errors()
+
+    print("\nРабота программы завершена.")
+
+if __name__ == "__main__":
+    main()
